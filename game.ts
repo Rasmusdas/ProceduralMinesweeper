@@ -1,9 +1,10 @@
 
 const chunkSize = 7;
 const mineChance = 0.3;
-const cellSize = 16;
+var cellSize = 32;
 const perlinXSeed = 69.420;
 const perlinYSeed = 420.69;
+const renderRadius = 9;
 
 class MinesweeperChunk
 {
@@ -67,7 +68,7 @@ class MinesweeperChunk
 
 class MinesweeperGame
 {
-    public chunks: Map<string,MinesweeperChunk>
+    private chunks: Map<string,MinesweeperChunk>
 
     constructor()
     {
@@ -87,6 +88,66 @@ class MinesweeperGame
         }
         
         return this.chunks.get(x+"|"+y);
+    }
+
+    public reveal(x: number, y: number, xChunk: number, yChunk: number)
+    {
+        let chunk = this.getChunk(xChunk,yChunk);
+
+        if(chunk.revealed[x][y] == true)
+        {
+            return;
+        }
+
+        chunk.revealed[x][y] = true
+
+        if(chunk.chunk[x][y] == -1 )
+        {
+            return;
+        }
+        
+        if(chunk.chunk[x][y] >= 10)
+        {
+            chunk.chunk[x][y] -= 20;
+        }
+
+        if(chunk.chunk[x][y] > 0)
+        {
+            return;
+        }
+
+
+        for (let i= -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                if(i == 0 && j == 0)
+                {
+                    continue;
+                }
+
+                if(x+i < 0)
+                {
+                    this.reveal(chunkSize-1,y,xChunk-1,yChunk)
+                    continue;
+                }
+                if(x+i >= chunkSize)
+                {
+                    this.reveal(0,y,xChunk+1,yChunk)
+                    continue;
+                }
+                if(y+j < 0)
+                {
+                    this.reveal(x,chunkSize-1,xChunk,yChunk-1) 
+                    continue;
+                }
+                if(y+j >= chunkSize)
+                {
+                    this.reveal(x,0,xChunk,yChunk+1)
+                    continue;
+                }
+
+                this.reveal(x+i,y+j,xChunk,yChunk)
+            }
+        }
     }
 }
 
@@ -113,14 +174,14 @@ class MinesweeperUI
 
             if(x < 0)
             {
-                x-=16;
+                x-=cellSize;
             }
             if(y < 0)
             {
-                y-=16;
+                y-=cellSize;
             }
-            x = (x - x%16) / cellSize
-            y = (y - y%16) / cellSize
+            x = (x - x%cellSize) / cellSize
+            y = (y - y%cellSize) / cellSize
             x = x + Math.floor(chunkSize/2)
             y = y + Math.floor(chunkSize/2)
 
@@ -130,7 +191,7 @@ class MinesweeperUI
             x = x%chunkSize
             y = y%chunkSize
             //console.log("Raw Coordinates: (" + (eventArgs.clientX-this.canvas.width/2+cellSize/2) + "," + (eventArgs.clientY-this.canvas.height/2+cellSize/2) + ")" )
-            this.clickTile(x,y,xChunk+this.offsetX,yChunk+this.offsetY)
+            this.clickTile(x,y,xChunk+this.offsetX,yChunk+this.offsetY, eventArgs.button == 2)
         }
 
         document.onkeydown = (eventArgs: KeyboardEvent) => 
@@ -150,10 +211,31 @@ class MinesweeperUI
                 case "ArrowLeft":
                     this.offsetX--
                     break;
+                    
             }
 
             this.drawMap();
         }
+
+        document.onwheel = (eventArgs: WheelEvent) =>
+        {
+            console.log(eventArgs)
+            if(eventArgs.deltaY < 0)
+            {
+                if(cellSize-2 > 8)
+                {
+                    cellSize-=2;
+                }
+            }
+            if(eventArgs.deltaY > 0)
+            {
+                if(cellSize+2 < 32)
+                {
+                    cellSize+=2;
+                }
+            }
+            this.drawMap()
+        } 
 
         this.game = new MinesweeperGame;
         
@@ -165,8 +247,8 @@ class MinesweeperUI
     private drawMap()
     {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        for (let x = -5; x <= 5; x++) {
-            for (let y = -5; y <= 5; y++) {
+        for (let x = -renderRadius; x <= renderRadius; x++) {
+            for (let y = -renderRadius; y <= renderRadius; y++) {
                 this.drawChunk(x+this.offsetX,y+this.offsetY,x,y);
             }
         }
@@ -191,12 +273,15 @@ class MinesweeperUI
 
                     if(sweeperChunk.chunk[i][j] > 0)
                     {
-                        
                         this.ctx.fillStyle = "black"
                         this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+posX*cellSize*chunkSize + this.canvas.width/2- chunkSize/2*cellSize,(j*cellSize+posY*cellSize*chunkSize + this.canvas.height/2 - chunkSize/2*cellSize)+8,150)
                     }
                 }
 
+                if(sweeperChunk.chunk[i][j] >= 10)
+                {
+                    color = "green"
+                }
                 this.drawTile(i*cellSize+posX*cellSize*chunkSize + this.canvas.width/2- chunkSize/2*cellSize,j*cellSize+posY*cellSize*chunkSize + this.canvas.height/2 - chunkSize/2*cellSize,color);
 
                 if(sweeperChunk.revealed[i][j])
@@ -235,7 +320,7 @@ class MinesweeperUI
         
     }
 
-    private clickTile(x: number, y: number, xChunk: number, yChunk: number)
+    private clickTile(x: number, y: number, xChunk: number, yChunk: number, rightClick: boolean)
     {
         if(x < 0)
         {
@@ -247,65 +332,23 @@ class MinesweeperUI
         }
 
         console.log("Clicked on ("+x+","+y+") in chunk ("+xChunk+","+yChunk+")")
-        this.reveal(x,y,xChunk,yChunk)
-        this.drawMap()
-    }
-
-    
-    private reveal(x: number, y: number, xChunk: number, yChunk: number)
-    {
-        let chunk = this.game.getChunk(xChunk,yChunk);
-
-        if(chunk.revealed[x][y] == true)
+        if(rightClick)
         {
-            return;
-        }
-
-        chunk.revealed[x][y] = true
-
-        if(chunk.chunk[x][y] == -1 )
-        {
-            return;
-        }
-        
-        if(chunk.chunk[x][y] > 0)
-        {
-            return;
-        }
-
-
-        for (let i= -1; i <= 1; i++) {
-            for (let j = -1; j <= 1; j++) {
-                if(i == 0 && j == 0)
-                {
-                    continue;
-                }
-
-                if(x+i < 0)
-                {
-                    this.reveal(chunkSize-1,y,xChunk-1,yChunk)
-                    continue;
-                }
-                if(x+i >= chunkSize)
-                {
-                    this.reveal(0,y,xChunk+1,yChunk)
-                    continue;
-                }
-                if(y+j < 0)
-                {
-                    this.reveal(x,chunkSize-1,xChunk,yChunk-1) 
-                    continue;
-                }
-                if(y+j >= chunkSize)
-                {
-                    this.reveal(x,0,xChunk,yChunk+1)
-                    continue;
-                }
-
-                this.reveal(x+i,y+j,xChunk,yChunk)
+            let chunk = this.game.getChunk(xChunk,yChunk);
+            if(chunk.chunk[x][y] >= 10)
+            {
+                chunk.chunk[x][y] -=20
+            }
+            else
+            {
+                chunk.chunk[x][y] +=20
             }
         }
-
+        else
+        {
+            this.game.reveal(x,y,xChunk,yChunk)
+        }
+        this.drawMap()
     }
 }
 

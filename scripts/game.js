@@ -261,9 +261,10 @@ noise.perlin3 = function (x, y, z) {
 };
 var chunkSize = 7;
 var mineChance = 0.3;
-var cellSize = 16;
+var cellSize = 32;
 var perlinXSeed = 69.420;
 var perlinYSeed = 420.69;
+var renderRadius = 9;
 var MinesweeperChunk = (function () {
     function MinesweeperChunk(offsetX, offsetY) {
         this.chunk = [];
@@ -319,122 +320,17 @@ var MinesweeperGame = (function () {
         }
         return this.chunks.get(x + "|" + y);
     };
-    return MinesweeperGame;
-}());
-var MinesweeperUI = (function () {
-    function MinesweeperUI() {
-        var _this = this;
-        this.canvas = document.getElementById("canvas");
-        this.ctx = this.canvas.getContext("2d");
-        this.canvas.width = document.body.clientWidth - 4;
-        this.canvas.height = document.body.clientHeight - 4;
-        this.canvas.onmousedown = function (eventArgs) {
-            var x = eventArgs.clientX - _this.canvas.width / 2 + cellSize / 2;
-            var y = eventArgs.clientY - _this.canvas.height / 2 + cellSize / 2;
-            if (x < 0) {
-                x -= 16;
-            }
-            if (y < 0) {
-                y -= 16;
-            }
-            x = (x - x % 16) / cellSize;
-            y = (y - y % 16) / cellSize;
-            x = x + Math.floor(chunkSize / 2);
-            y = y + Math.floor(chunkSize / 2);
-            var xChunk = Math.floor(x / chunkSize);
-            var yChunk = Math.floor(y / chunkSize);
-            x = x % chunkSize;
-            y = y % chunkSize;
-            _this.clickTile(x, y, xChunk + _this.offsetX, yChunk + _this.offsetY);
-        };
-        document.onkeydown = function (eventArgs) {
-            console.log(eventArgs.code);
-            switch (eventArgs.code) {
-                case "ArrowDown":
-                    _this.offsetY++;
-                    break;
-                case "ArrowUp":
-                    _this.offsetY--;
-                    break;
-                case "ArrowRight":
-                    _this.offsetX++;
-                    break;
-                case "ArrowLeft":
-                    _this.offsetX--;
-                    break;
-            }
-            _this.drawMap();
-        };
-        this.game = new MinesweeperGame;
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.drawMap();
-    }
-    MinesweeperUI.prototype.drawMap = function () {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        for (var x = -5; x <= 5; x++) {
-            for (var y = -5; y <= 5; y++) {
-                this.drawChunk(x + this.offsetX, y + this.offsetY, x, y);
-            }
-        }
-    };
-    MinesweeperUI.prototype.drawChunk = function (x, y, posX, posY) {
-        var sweeperChunk = this.game.getChunk(x, y);
-        for (var i = 0; i < chunkSize; i++) {
-            for (var j = 0; j < chunkSize; j++) {
-                var color = "grey";
-                if (sweeperChunk.revealed[i][j]) {
-                    color = "white";
-                    if (sweeperChunk.chunk[i][j] == -1) {
-                        color = "red";
-                    }
-                    if (sweeperChunk.chunk[i][j] > 0) {
-                        this.ctx.fillStyle = "black";
-                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(), i * cellSize + posX * cellSize * chunkSize + this.canvas.width / 2 - chunkSize / 2 * cellSize, (j * cellSize + posY * cellSize * chunkSize + this.canvas.height / 2 - chunkSize / 2 * cellSize) + 8, 150);
-                    }
-                }
-                this.drawTile(i * cellSize + posX * cellSize * chunkSize + this.canvas.width / 2 - chunkSize / 2 * cellSize, j * cellSize + posY * cellSize * chunkSize + this.canvas.height / 2 - chunkSize / 2 * cellSize, color);
-                if (sweeperChunk.revealed[i][j]) {
-                    color = "white";
-                    if (sweeperChunk.chunk[i][j] > 0) {
-                        this.ctx.fillStyle = "black";
-                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(), i * cellSize + posX * cellSize * chunkSize + this.canvas.width / 2 - chunkSize / 2 * cellSize, (j * cellSize + posY * cellSize * chunkSize + this.canvas.height / 2 - chunkSize / 2 * cellSize) + 8, 150);
-                    }
-                }
-            }
-        }
-    };
-    MinesweeperUI.prototype.drawTile = function (x, y, color) {
-        this.ctx.fillStyle = "grey";
-        this.ctx.fillRect(x, y, cellSize, cellSize);
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(x + 1, y + 1, cellSize - 1, cellSize - 1);
-        this.ctx.fillStyle = "white";
-        this.ctx.fillRect(x + 1, y + 1, 1, cellSize);
-        this.ctx.fillRect(x + 1, y + 1, cellSize, 1);
-        this.ctx.fillStyle = "#474747";
-        this.ctx.fillRect(x, y + cellSize - 1, cellSize, 1);
-        this.ctx.fillRect(x + cellSize - 1, y, 1, cellSize);
-    };
-    MinesweeperUI.prototype.clickTile = function (x, y, xChunk, yChunk) {
-        if (x < 0) {
-            x = chunkSize - Math.abs(x);
-        }
-        if (y < 0) {
-            y = chunkSize - Math.abs(y);
-        }
-        console.log("Clicked on (" + x + "," + y + ") in chunk (" + xChunk + "," + yChunk + ")");
-        this.reveal(x, y, xChunk, yChunk);
-        this.drawMap();
-    };
-    MinesweeperUI.prototype.reveal = function (x, y, xChunk, yChunk) {
-        var chunk = this.game.getChunk(xChunk, yChunk);
+    MinesweeperGame.prototype.reveal = function (x, y, xChunk, yChunk) {
+        var chunk = this.getChunk(xChunk, yChunk);
         if (chunk.revealed[x][y] == true) {
             return;
         }
         chunk.revealed[x][y] = true;
         if (chunk.chunk[x][y] == -1) {
             return;
+        }
+        if (chunk.chunk[x][y] >= 10) {
+            chunk.chunk[x][y] -= 20;
         }
         if (chunk.chunk[x][y] > 0) {
             return;
@@ -463,6 +359,142 @@ var MinesweeperUI = (function () {
                 this.reveal(x + i, y + j, xChunk, yChunk);
             }
         }
+    };
+    return MinesweeperGame;
+}());
+var MinesweeperUI = (function () {
+    function MinesweeperUI() {
+        var _this = this;
+        this.canvas = document.getElementById("canvas");
+        this.ctx = this.canvas.getContext("2d");
+        this.canvas.width = document.body.clientWidth - 4;
+        this.canvas.height = document.body.clientHeight - 4;
+        this.canvas.onmousedown = function (eventArgs) {
+            var x = eventArgs.clientX - _this.canvas.width / 2 + cellSize / 2;
+            var y = eventArgs.clientY - _this.canvas.height / 2 + cellSize / 2;
+            if (x < 0) {
+                x -= cellSize;
+            }
+            if (y < 0) {
+                y -= cellSize;
+            }
+            x = (x - x % cellSize) / cellSize;
+            y = (y - y % cellSize) / cellSize;
+            x = x + Math.floor(chunkSize / 2);
+            y = y + Math.floor(chunkSize / 2);
+            var xChunk = Math.floor(x / chunkSize);
+            var yChunk = Math.floor(y / chunkSize);
+            x = x % chunkSize;
+            y = y % chunkSize;
+            _this.clickTile(x, y, xChunk + _this.offsetX, yChunk + _this.offsetY, eventArgs.button == 2);
+        };
+        document.onkeydown = function (eventArgs) {
+            console.log(eventArgs.code);
+            switch (eventArgs.code) {
+                case "ArrowDown":
+                    _this.offsetY++;
+                    break;
+                case "ArrowUp":
+                    _this.offsetY--;
+                    break;
+                case "ArrowRight":
+                    _this.offsetX++;
+                    break;
+                case "ArrowLeft":
+                    _this.offsetX--;
+                    break;
+            }
+            _this.drawMap();
+        };
+        document.onwheel = function (eventArgs) {
+            console.log(eventArgs);
+            if (eventArgs.deltaY < 0) {
+                if (cellSize - 2 > 8) {
+                    cellSize -= 2;
+                }
+            }
+            if (eventArgs.deltaY > 0) {
+                if (cellSize + 2 < 32) {
+                    cellSize += 2;
+                }
+            }
+            _this.drawMap();
+        };
+        this.game = new MinesweeperGame;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.drawMap();
+    }
+    MinesweeperUI.prototype.drawMap = function () {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        for (var x = -renderRadius; x <= renderRadius; x++) {
+            for (var y = -renderRadius; y <= renderRadius; y++) {
+                this.drawChunk(x + this.offsetX, y + this.offsetY, x, y);
+            }
+        }
+    };
+    MinesweeperUI.prototype.drawChunk = function (x, y, posX, posY) {
+        var sweeperChunk = this.game.getChunk(x, y);
+        for (var i = 0; i < chunkSize; i++) {
+            for (var j = 0; j < chunkSize; j++) {
+                var color = "grey";
+                if (sweeperChunk.revealed[i][j]) {
+                    color = "white";
+                    if (sweeperChunk.chunk[i][j] == -1) {
+                        color = "red";
+                    }
+                    if (sweeperChunk.chunk[i][j] > 0) {
+                        this.ctx.fillStyle = "black";
+                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(), i * cellSize + posX * cellSize * chunkSize + this.canvas.width / 2 - chunkSize / 2 * cellSize, (j * cellSize + posY * cellSize * chunkSize + this.canvas.height / 2 - chunkSize / 2 * cellSize) + 8, 150);
+                    }
+                }
+                if (sweeperChunk.chunk[i][j] >= 10) {
+                    color = "green";
+                }
+                this.drawTile(i * cellSize + posX * cellSize * chunkSize + this.canvas.width / 2 - chunkSize / 2 * cellSize, j * cellSize + posY * cellSize * chunkSize + this.canvas.height / 2 - chunkSize / 2 * cellSize, color);
+                if (sweeperChunk.revealed[i][j]) {
+                    color = "white";
+                    if (sweeperChunk.chunk[i][j] > 0) {
+                        this.ctx.fillStyle = "black";
+                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(), i * cellSize + posX * cellSize * chunkSize + this.canvas.width / 2 - chunkSize / 2 * cellSize, (j * cellSize + posY * cellSize * chunkSize + this.canvas.height / 2 - chunkSize / 2 * cellSize) + 8, 150);
+                    }
+                }
+            }
+        }
+    };
+    MinesweeperUI.prototype.drawTile = function (x, y, color) {
+        this.ctx.fillStyle = "grey";
+        this.ctx.fillRect(x, y, cellSize, cellSize);
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(x + 1, y + 1, cellSize - 1, cellSize - 1);
+        this.ctx.fillStyle = "white";
+        this.ctx.fillRect(x + 1, y + 1, 1, cellSize);
+        this.ctx.fillRect(x + 1, y + 1, cellSize, 1);
+        this.ctx.fillStyle = "#474747";
+        this.ctx.fillRect(x, y + cellSize - 1, cellSize, 1);
+        this.ctx.fillRect(x + cellSize - 1, y, 1, cellSize);
+    };
+    MinesweeperUI.prototype.clickTile = function (x, y, xChunk, yChunk, rightClick) {
+        if (x < 0) {
+            x = chunkSize - Math.abs(x);
+        }
+        if (y < 0) {
+            y = chunkSize - Math.abs(y);
+        }
+        console.log("Clicked on (" + x + "," + y + ") in chunk (" + xChunk + "," + yChunk + ")");
+        if (rightClick) {
+            var chunk = this.game.getChunk(xChunk, yChunk);
+            if (chunk.chunk[x][y] >= 10) {
+                chunk.chunk[x][y] -= 20;
+            }
+            else {
+                chunk.chunk[x][y] += 20;
+            }
+        }
+        else {
+            this.game.reveal(x, y, xChunk, yChunk);
+        }
+        this.drawMap();
     };
     return MinesweeperUI;
 }());
