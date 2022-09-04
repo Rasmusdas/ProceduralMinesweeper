@@ -1,10 +1,10 @@
 
-const chunkSize = 7;
+const chunkSize = 19;
 const mineChance = 0.3;
 var cellSize = 32;
 const perlinXSeed = 69.420;
 const perlinYSeed = 420.69;
-const renderRadius = 9;
+const renderRadius = 4;
 
 class MinesweeperChunk
 {
@@ -180,18 +180,23 @@ class MinesweeperUI
             {
                 y-=cellSize;
             }
+
             x = (x - x%cellSize) / cellSize
             y = (y - y%cellSize) / cellSize
             x = x + Math.floor(chunkSize/2)
             y = y + Math.floor(chunkSize/2)
+
+            x = x + this.offsetX
+            y = y + this.offsetY
 
             let xChunk = Math.floor(x/chunkSize)
             let yChunk = Math.floor(y/chunkSize)
 
             x = x%chunkSize
             y = y%chunkSize
+
             //console.log("Raw Coordinates: (" + (eventArgs.clientX-this.canvas.width/2+cellSize/2) + "," + (eventArgs.clientY-this.canvas.height/2+cellSize/2) + ")" )
-            this.clickTile(x,y,xChunk+this.offsetX,yChunk+this.offsetY, eventArgs.button == 2)
+            this.clickTile(x,y,xChunk,yChunk, eventArgs.button == 2)
         }
 
         document.onkeydown = (eventArgs: KeyboardEvent) => 
@@ -216,7 +221,6 @@ class MinesweeperUI
 
             this.drawMap();
         }
-
         document.onwheel = (eventArgs: WheelEvent) =>
         {
             console.log(eventArgs)
@@ -246,10 +250,31 @@ class MinesweeperUI
 
     private drawMap()
     {
+        let xOffset = this.offsetX/chunkSize
+        let yOffset = this.offsetY/chunkSize
+
+        if(xOffset < 0)
+        {
+            xOffset = Math.ceil(xOffset)
+        }
+        else
+        {
+            xOffset = Math.floor(xOffset)
+        }
+
+        if(yOffset < 0)
+        {
+            yOffset = Math.ceil(yOffset)
+        }
+        else
+        {
+            yOffset = Math.floor(yOffset)
+        }
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for (let x = -renderRadius; x <= renderRadius; x++) {
             for (let y = -renderRadius; y <= renderRadius; y++) {
-                this.drawChunk(x+this.offsetX,y+this.offsetY,x,y);
+                this.drawChunk(x+xOffset,y+yOffset,x,y);
             }
         }
     }
@@ -274,7 +299,7 @@ class MinesweeperUI
                     if(sweeperChunk.chunk[i][j] > 0)
                     {
                         this.ctx.fillStyle = "black"
-                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+posX*cellSize*chunkSize + this.canvas.width/2- chunkSize/2*cellSize,(j*cellSize+posY*cellSize*chunkSize + this.canvas.height/2 - chunkSize/2*cellSize)+8,150)
+                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+posX*cellSize*chunkSize - (this.offsetX%chunkSize)*cellSize + this.canvas.width/2- chunkSize/2*cellSize,(j*cellSize+posY*cellSize*chunkSize - (this.offsetY%chunkSize)*cellSize + this.canvas.height/2 - chunkSize/2*cellSize)+8,150)
                     }
                 }
 
@@ -282,7 +307,7 @@ class MinesweeperUI
                 {
                     color = "green"
                 }
-                this.drawTile(i*cellSize+posX*cellSize*chunkSize + this.canvas.width/2- chunkSize/2*cellSize,j*cellSize+posY*cellSize*chunkSize + this.canvas.height/2 - chunkSize/2*cellSize,color);
+                this.drawTile(i*cellSize+posX*cellSize*chunkSize - (this.offsetX%chunkSize)*cellSize + this.canvas.width/2- chunkSize/2*cellSize,j*cellSize+posY*cellSize*chunkSize- (this.offsetY%chunkSize)*cellSize + this.canvas.height/2 - chunkSize/2*cellSize,color);
 
                 if(sweeperChunk.revealed[i][j])
                 {
@@ -290,8 +315,9 @@ class MinesweeperUI
 
                     if(sweeperChunk.chunk[i][j] > 0)
                     {
+                        console.log("Beep")
                         this.ctx.fillStyle = "black"
-                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+posX*cellSize*chunkSize + this.canvas.width/2- chunkSize/2*cellSize,(j*cellSize+posY*cellSize*chunkSize + this.canvas.height/2 - chunkSize/2*cellSize)+8,150)
+                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+posX*cellSize*chunkSize - (this.offsetX%chunkSize)*cellSize + this.canvas.width/2- chunkSize/2*cellSize,(j*cellSize+posY*cellSize*chunkSize - (this.offsetY%chunkSize)*cellSize + this.canvas.height/2 - chunkSize/2*cellSize)+8,150)
                     }
                 }
 
