@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-chrome",
+            "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
             "preLaunchTask": "tsc: build - tsconfig.json",
-            "url": "C:\\Users\\rasmu\\Documents\\Minesweepio\\index.html",
+            "url": "${workspaceFolder}/index.html",
             "webRoot": "${workspaceFolder}"
         }
     ]

@@ -2,8 +2,8 @@
 const chunkSize = 19;
 const mineChance = 0.3;
 var cellSize = 32;
-const perlinXSeed = 69.420;
-const perlinYSeed = 420.69;
+var perlinXSeed = 69.420*(Math.random()+1)*10;
+var perlinYSeed = 420.69*(Math.random()+1)*10;
 const renderRadius = 4;
 
 class MinesweeperChunk
@@ -92,6 +92,9 @@ class MinesweeperGame
 
     public reveal(x: number, y: number, xChunk: number, yChunk: number)
     {
+        if(x < 0 || x>= chunkSize)return;
+
+        if(y < 0 || y>= chunkSize)return;
         let chunk = this.getChunk(xChunk,yChunk);
 
         if(chunk.revealed[x][y] == true)
@@ -119,6 +122,7 @@ class MinesweeperGame
 
         for (let i= -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
+
                 if(i == 0 && j == 0)
                 {
                     continue;
@@ -127,22 +131,19 @@ class MinesweeperGame
                 if(x+i < 0)
                 {
                     this.reveal(chunkSize-1,y,xChunk-1,yChunk)
-                    continue;
                 }
                 if(x+i >= chunkSize)
                 {
                     this.reveal(0,y,xChunk+1,yChunk)
-                    continue;
                 }
+
                 if(y+j < 0)
                 {
                     this.reveal(x,chunkSize-1,xChunk,yChunk-1) 
-                    continue;
                 }
                 if(y+j >= chunkSize)
                 {
                     this.reveal(x,0,xChunk,yChunk+1)
-                    continue;
                 }
 
                 this.reveal(x+i,y+j,xChunk,yChunk)
@@ -201,7 +202,6 @@ class MinesweeperUI
 
         document.onkeydown = (eventArgs: KeyboardEvent) => 
         {
-            console.log(eventArgs.code)
             switch(eventArgs.code)
             {
                 case "ArrowDown":
@@ -216,7 +216,18 @@ class MinesweeperUI
                 case "ArrowLeft":
                     this.offsetX--
                     break;
-                    
+                case "KeyM":
+                    if(cellSize-2 > 8)
+                    {
+                        cellSize-=2;
+                    };
+                    break;
+                case "KeyP":
+                    if(cellSize+2 < 32)
+                    {
+                        cellSize+=2;
+                    }
+                    break;                    
             }
 
             this.drawMap();
@@ -281,6 +292,17 @@ class MinesweeperUI
 
     private drawChunk(x: number, y: number, posX: number, posY: number)
     {
+        let calcXOffset = posX*cellSize*chunkSize - (this.offsetX%chunkSize)*cellSize + this.canvas.width/2- chunkSize/2*cellSize;
+        let calcYOffset = posY*cellSize*chunkSize - (this.offsetY%chunkSize)*cellSize + this.canvas.height/2 - chunkSize/2*cellSize;
+        if(calcXOffset < -cellSize*chunkSize || calcXOffset > this.canvas.width + cellSize)
+        {
+            return;
+        }
+
+        if(calcYOffset < -cellSize*chunkSize || calcYOffset > this.canvas.height + cellSize)
+        {
+            return;
+        }
         let sweeperChunk = this.game.getChunk(x,y)
         for (let i = 0; i < chunkSize; i++) {
             for (let j = 0; j < chunkSize; j++) {
@@ -295,19 +317,13 @@ class MinesweeperUI
                     {
                         color = "red";
                     }
-
-                    if(sweeperChunk.chunk[i][j] > 0)
-                    {
-                        this.ctx.fillStyle = "black"
-                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+posX*cellSize*chunkSize - (this.offsetX%chunkSize)*cellSize + this.canvas.width/2- chunkSize/2*cellSize,(j*cellSize+posY*cellSize*chunkSize - (this.offsetY%chunkSize)*cellSize + this.canvas.height/2 - chunkSize/2*cellSize)+8,150)
-                    }
                 }
 
                 if(sweeperChunk.chunk[i][j] >= 10)
                 {
                     color = "green"
                 }
-                this.drawTile(i*cellSize+posX*cellSize*chunkSize - (this.offsetX%chunkSize)*cellSize + this.canvas.width/2- chunkSize/2*cellSize,j*cellSize+posY*cellSize*chunkSize- (this.offsetY%chunkSize)*cellSize + this.canvas.height/2 - chunkSize/2*cellSize,color);
+                this.drawTile(i*cellSize+calcXOffset,j*cellSize+calcYOffset,color);
 
                 if(sweeperChunk.revealed[i][j])
                 {
@@ -317,7 +333,7 @@ class MinesweeperUI
                     {
                         console.log("Beep")
                         this.ctx.fillStyle = "black"
-                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+posX*cellSize*chunkSize - (this.offsetX%chunkSize)*cellSize + this.canvas.width/2- chunkSize/2*cellSize,(j*cellSize+posY*cellSize*chunkSize - (this.offsetY%chunkSize)*cellSize + this.canvas.height/2 - chunkSize/2*cellSize)+8,150)
+                        this.ctx.fillText(sweeperChunk.chunk[i][j].toString(),i*cellSize+calcXOffset,j*cellSize+calcYOffset+8,150)
                     }
                 }
 
@@ -328,6 +344,15 @@ class MinesweeperUI
 
     private drawTile(x: number, y: number, color: string)
     {
+
+        if(x < -cellSize || x > this.canvas.width+cellSize)
+        {
+            return
+        }
+        if(y < -cellSize || y > this.canvas.height+cellSize)
+        {
+            return
+        }
         this.ctx.fillStyle = "grey";
         this.ctx.fillRect(x,y,cellSize,cellSize);
 
